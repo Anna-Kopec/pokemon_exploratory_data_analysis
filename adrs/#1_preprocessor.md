@@ -4,4 +4,6 @@
     
 -   Get a dictionary of (name : tier) for each pokemon where tier is the highest allowed competetive bracket for that pokemon.
     
--   One-high encoding for categorical variables..?
+-   Create one-hot encodings for all categorical variables (any str variables w/ finite # of options, such as abilities or color)
+
+-   
