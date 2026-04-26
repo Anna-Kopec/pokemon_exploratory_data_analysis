@@ -71,6 +71,25 @@ def getAllSmogonBuilds(smogon_files: list):
                 builds[mon_name] = new_builds[mon_name]
     return builds
 
+# DEBUG ... Mega checking code, not necessary for main operation of preprocessor
+# def isMega(mon_name):
+#     try:
+#         mon_name.index('-mega')
+#         return True
+#     except:
+#         return False
+
+# def getNonMegaName(mon_name):
+#     # trivial short-circuit
+#     if not isMega(mon_name):
+#         return 'ERROR_INPUT_MUST_BE_MEGA'
+#     mega_tag_index = mon_name.index('-mega')
+#     non_mega_name = mon_name[0:mega_tag_index]
+#     return non_mega_name
+
+# def hasNonMega(mega_name:str, builds:dict) -> bool:
+#         return getNonMegaName(mega_name) in builds.keys()
+
 def main() -> None:
     # Set our targeted file paths
     """
@@ -110,6 +129,11 @@ def main() -> None:
     
     # Write the data to the output file!
     write_json(smogon_builds, output_file)
+
+    # DEBUG ... Get mega list
+    # for mon in smogon_builds.keys():
+    #     if isMega(mon) and not hasNonMega(mon, smogon_builds):
+    #         print(f'name: {mon}\n-> OG: {getNonMegaName(mon)}')
 
     # Output debug data to console
     print(f'|-- Preprocessing complete! --|')
