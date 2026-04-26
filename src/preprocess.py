@@ -7,6 +7,23 @@ from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 import numpy as np
 import json
 
+def get_movepool_with_fallback(name_clean, mapping):
+    """
+    Attempts to find a movepool. If not found, checks if the Pokemon 
+    starts with a known base name (like 'oricorio').
+    """
+    # 1. Direct match (e.g., 'pikachu')
+    if name_clean in mapping:
+        return mapping[name_clean]
+    
+    # 2. Handle specific cases like Oricorio, Lycanroc, etc.
+    # We check if the name starts with any key in the mapping
+    for base_name in mapping.keys():
+        if name_clean.startswith(base_name):
+            return mapping[base_name]
+            
+    return [] # Return empty list if no match found
+
 def label_encode_ordinal(df, column, ordered_list):
     """
     Standardizes ordinal encoding for a specific order and ensures lowercase title.
@@ -66,13 +83,10 @@ if __name__ == '__main__':
         movepool_mapping = json.load(f)
 
     pkmn_df['temp_moves'] = pkmn_df['name_clean'].apply(
-        lambda x: movepool_mapping.get(x, [])
+        lambda x: get_movepool_with_fallback(x, movepool_mapping)
     )
 
-    pkmn_df['temp_moves'] = pkmn_df['temp_moves'].apply(
-        lambda x: '|'.join(x) if len(x) > 0 else 'none'
-    )
-
+    pkmn_df['temp_moves'] = pkmn_df['temp_moves'].apply(lambda x: '|'.join(x) if x else 'none')
     pkmn_df = multi_hot_encode(pkmn_df, 'temp_moves', 'move')
 
     
@@ -117,8 +131,7 @@ if __name__ == '__main__':
             pkmn_df[col] = pkmn_df[col].astype(int)
 
     # --- 5. CLEANUP & EXPORT --- 
-    # temp: keep 'name_clean' but remove later - for data checking
-    cols_to_delete = ['pokedex_number', 'name', 'hidden_ability', 
+    cols_to_delete = ['pokedex_number', 'name', 'name_clean', 'hidden_ability', 
                       'flavor_text', 'sprite_url', 'genus', 'evolution_chain_id', 'egg_groups']
     
     pkmn_df = pkmn_df.drop(columns=[c for c in cols_to_delete if c in pkmn_df.columns])
