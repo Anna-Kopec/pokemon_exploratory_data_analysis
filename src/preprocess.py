@@ -79,7 +79,7 @@ if __name__ == '__main__':
         pkmn_df['name_clean'] = pkmn_df['name'].str.replace('-', '', regex=False).str.lower()
         pkmn_df['tier'] = pkmn_df['name_clean'].map(tier_mapping)
         
-        tier_order = ['Illegal', 'LC', 'NFE', 'RU', 'RUBL', 'UU', 'UUBL', 'OU', 'Uber', 'AG']
+        tier_order = ['Illegal','LC', 'NFE', 'RU', 'UU', 'OU', 'Uber', 'AG']
         pkmn_df = label_encode_ordinal(pkmn_df, 'tier', tier_order)
 
     # --- 4. BOOLS->INT + CALCULATED EVO STAGES --
