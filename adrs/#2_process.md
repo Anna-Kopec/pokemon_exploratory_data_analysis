@@ -1,5 +1,15 @@
 -   We are thinking of using random forest and XGboost tree models:
+
 -   This largely has to do with the structure of our dataset. We are dealing with a high volume of categorical variables which leads to high-dimensional data becaues of one-hot encoding. Not only are clustering algs worse with high dim data, but the fact that so much of our data is categorical makes using k-means worse (particularly because of dist metric). 
+
 -   The same problem arises with linear regression models; they don't do well with categorical data
+
 -   Logistic is good, but becomes trickier with multiple classes; naive log-reg like what we learned in class is best for predicting 2 possible outcomes
+
 -   Trees are great because they are able to handle large, sparse datasets, as they don't use distance metrics. They use metrics like data impurity or entropy which works well for categorical vars. 
+
+- PREDICT TIERS
+
+- predict tiers for pokemon depending on stats, abilities, movepool, etc. 
+
+- useful for predicting meta, acts as way of predicting whether comp player should prep a pokemon for Ubers for ex or will it be banned
