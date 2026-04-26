@@ -23,23 +23,35 @@ def write_json(data: dict, file_path: str):
         print(f"Error: Could not find {file_path}.")
         return None
 
+def getFirstKey(d: dict):
+    """Returns first key of given dict. Will be messy, don't read into it too deep. :|"""
+    return d[list((d.keys()))[0]]
+
 def getAllSmogonBuilds(smogon_files: list):
     """Returns dict containing all pokemon and their respective smogons (Gen9 natdex @ lvl 100 )."""
-    def getSmogonBuilds(name: str, file_name: list):
+    def getSmogonBuilds(file_name: list):
         """Returns smogon builds (one per pokemon) for given individual file."""
-        builds = load_json(file_name)
+        builds = dict()
+        mons = load_json(file_name)
+        # Now we need to scrap all the named builds and just return one per pokemon
+        for mon in mons.keys():
+            # Get first build; if there's only one, grabs only build
+            curr_options = mons[mon]
+            selected_option = getFirstKey(curr_options)
+            # Add this build into builds under the current pokemon name
+            builds[mon] = selected_option
         return builds
 
-        
-    builds = []
-    pokemon_learnsets = dict()  # will contain (name : tier)
-
-    for mon_name in pokemon_list:
-        mon_LS = raw_data.get(mon_name).get('learnset')
-        mon_LS_normalized = normalizeLearnset(mon_LS)
-        pokemon_learnsets[mon_name] = mon_LS_normalized
-
-    return pokemon_learnsets
+    builds = dict()
+    # Parse each smogon file
+    for fname in smogon_files:
+        # Pull smogons from the file
+        new_builds = getSmogonBuilds(fname)
+        # Add all pokemon from this smogon file that we haven't already seen
+        for mon_name in new_builds.keys():
+            if mon_name not in builds.keys():
+                builds[mon_name] = new_builds[mon_name]
+    return builds
 
 def main() -> None:
     # Set our targeted file paths
@@ -65,15 +77,19 @@ def main() -> None:
     ]
     output_file = 'data/exported-smogon.json'
 
+    # Prepend directory for all input data file names
+    for i in range(len(input_files)):
+        input_files[i] = input_file_dir + input_files[i]
+
     # Process the data
-    smogons = getAllSmogonBuilds(input_files)
+    smogon_builds = getAllSmogonBuilds(input_files)
 
     # Write the data to the output file!
-    write_json(smogons, output_file)
+    write_json(smogon_builds, output_file)
 
     # Output debug data to console
     print(f'|-- Preprocessing complete! --|')
-    print(f'...Total processed pokemon -> {len(pokemon_learnsets.keys())}')
+    print(f'...Total processed pokemon -> {len(smogon_builds.keys())}')
 
 
 if __name__ == "__main__":
