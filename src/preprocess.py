@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
+import json
 
 #TODO
 
@@ -127,12 +128,21 @@ if __name__ == '__main__':
     bool_cols = ['is_legendary', 'is_mythical', 'is_baby']
     pkmn_df[bool_cols] = pkmn_df[bool_cols].astype(int)
 
-    cols_to_delete = ['pokedex_number', 'name', 'hidden_ability', 'flavor_text', 'sprite_url', 'genus']
-    pkmn_df = pkmn_df.drop(columns=cols_to_delete)
-
     # encode growth rate (special because it's ordinal)
     growth_order = {'fast':1, 'medium':2, 'fast-then-very-slow':3, 'medium-slow':4, 'slow':5, 'slow-then-very-fast':6}
     pkmn_df['growth_rate'] = pkmn_df['growth_rate'].map(growth_order)
+
+    # merge dataset that contains competitive tier of each pokemon
+    with open('data/exported-tiers.json', 'r') as f:
+        tier_mapping = json.load(f)
+
+    pkmn_df['name'] = pkmn_df['name'].str.replace('-', '', regex=False).str.lower()
+    pkmn_df['tier'] = pkmn_df['name'].map(tier_mapping)
+    print(pkmn_df[['name', 'tier']].head())
+
+    cols_to_delete = ['pokedex_number', 'name', 'hidden_ability', 'flavor_text', 'sprite_url', 'genus']
+    pkmn_df = pkmn_df.drop(columns=cols_to_delete)
+    
 
     # Save to data folder
     pkmn_df.to_csv('data/preprocessed_pokemon_data.csv', index=False)
