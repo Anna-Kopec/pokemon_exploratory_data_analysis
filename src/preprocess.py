@@ -54,7 +54,6 @@ if __name__ == '__main__':
 
     # --- 1. MULTI-HOT ENCODE --- 
     pkmn_df = multi_hot_encode(pkmn_df, 'abilities', 'ability')
-    pkmn_df = multi_hot_encode(pkmn_df, 'egg_groups', 'egg_group')
 
     # UNIFY TYPES: Join type1 and type2 then multi-hot encode
     pkmn_df['temp_types'] = pkmn_df['type_1'].astype(str) + '|' + pkmn_df['type_2'].astype(str)
@@ -94,7 +93,7 @@ if __name__ == '__main__':
 
     # --- 5. CLEANUP & EXPORT --- 
     cols_to_delete = ['pokedex_number', 'name', 'name_clean', 'hidden_ability', 
-                      'flavor_text', 'sprite_url', 'genus', 'evolution_chain_id']
+                      'flavor_text', 'sprite_url', 'genus', 'evolution_chain_id', 'egg_groups']
     
     pkmn_df = pkmn_df.drop(columns=[c for c in cols_to_delete if c in pkmn_df.columns])
     
