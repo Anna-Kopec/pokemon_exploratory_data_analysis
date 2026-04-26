@@ -84,11 +84,5 @@ def main() -> None:
     print(f'|-- Preprocessing complete! --|')
     print(f'...Total processed pokemon -> {len(pokemon_tiers.keys())}')
 
-    tiers_uq = []
-    for name in pokemon_tiers.keys():
-        if pokemon_tiers[name] not in tiers_uq:
-            tiers_uq.append(pokemon_tiers[name])
-    print(f'tiers:\n{tiers_uq}')
-
 if __name__ == "__main__":
     main()
