@@ -4,6 +4,6 @@
     
 -   Get a dictionary of (name : tier) for each pokemon where tier is the highest allowed competetive bracket for that pokemon.
     
--   Use label encoding for categorical variables (as opposed to one-hot) as trees can work w/ label encoded data which allows for an entirely integer dataset while avoiding the sparsity of one-hot encoding
+-   do one-hot encoding, models will be able to work (no ordinal bias, easy splits)
 
-- needed to account for encoding in multiple different scenarios: some properties had multiple different possibilities (e.g. 3 possible abilities), so we had to split all possibilities up into 3 columns
+-   multi-hot encoding for categories like type

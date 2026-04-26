@@ -1,153 +1,144 @@
+# preprocessing by Anna Kopec
+
 import pandas as pd
 import os
 from pathlib import Path
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 import numpy as np
 import json
 
-#TODO
-
-# 1. reformat names such that all names are lowercase without any '-' connecting them, so that they can be compared directly w names from smogon dataset
-
-# OPTIONAL stuff 
-# 1. create column for evolutionary stage of the pokemon - use the fact that evolutionary chain is ordered by pokedex entry
-# only exception is baby pokemon, so check for is_baby flag 
-
-
-def multi_group_encode(df, column, n):
-    '''
-    df -> dataframe
-    column -> column that will be split into n encoded cols
-    n -> int, max # of possibilities for a given property a pokemon can have (e.g. 3 possible abilities max)
+def get_movepool_with_fallback(name_clean, mapping):
+    """
+    Attempts to find a movepool. If not found, checks if the Pokemon 
+    starts with a known base name (like 'oricorio').
+    """
+    # 1. Direct match (e.g., 'pikachu')
+    if name_clean in mapping:
+        return mapping[name_clean]
     
-    abilities and egg groups (for example) are formatted as "ability1|ability2", 
-    change this such that there are n columns, one for each possibility, 
-    where each col contains an int encoding of the pokemon's property for each entry,
-    an entry of 0 represents None'''
+    # 2. Handle specific cases like Oricorio, Lycanroc, etc.
+    # We check if the name starts with any key in the mapping
+    for base_name in mapping.keys():
+        if name_clean.startswith(base_name):
+            return mapping[base_name]
+            
+    return [] # Return empty list if no match found
 
-
-    # convert one long string of possibilities into tuple of strings
-    df[column]= df[column].astype(str).str.split('|').apply(tuple)
-    unique_values = set([item for sublist in df[column].unique() for item in sublist])
-
-    # create dict to store n entries for the given property for each pokemon
-    columns = {f'{column}_{i}':[] for i in range(1,n+1)}
-    col_names = list(columns.keys())
-
-    # encoder
-    le = LabelEncoder()
-    le.fit(list(unique_values))
-
-    for index, row in df.iterrows():
-        # list of possibile properties that the current pokemon can have
-        possibilities = sorted(row[column])
-        encoded_possibilities = le.transform(possibilities)
-        m = len(possibilities)
-
-        # add 1 to all encoded values to account for the fact that we want 0 to = None, but in our encoder, 0 = first possible ability
-
-        for i in range(n):
-            if i == 0:
-                columns[col_names[0]].append(encoded_possibilities[0] + 1)
-            else: 
-                if m > i:
-                    columns[col_names[i]].append(encoded_possibilities[i] + 1)
-                else:
-                    columns[col_names[i]].append(0)
-
-    df = df.drop(columns=[column])
-    for name in col_names:
-        df[name] = columns[name]
-
+def label_encode_ordinal(df, column, ordered_list):
+    """
+    Standardizes ordinal encoding for a specific order and ensures lowercase title.
+    """
+    mapping = {val: i for i, val in enumerate(ordered_list)}
+    df[column] = df[column].map(mapping).fillna(0).astype(int)
+    df.columns = df.columns.str.lower()
     return df
- 
 
-def label_encode(df, column, values):
-    '''
-    df-> input df
-    column -> str, col we are encoding
-    values -> set of unique values from col we are encoding, should not have duplicates
-    treat 'None' as a possible value, alter encoding such that actual values start with 1 rather than 0 (None=0) for interpretability
-    '''
-    # Remove any actual NaNs from our values list
-    values = [x for x in values if pd.notna(x) and x != 'None']
+def multi_hot_encode(df, column, prefix):
+    """
+    Replaces a column of piped strings with individual binary columns.
+    Ensures all new column titles are lowercase.
+    """
+    item_lists = df[column].astype(str).str.split('|').apply(
+        lambda x: [item.strip().lower() for item in x if item.strip().lower() not in ['none', 'nan', '']]
+    )
+
+    mlb = MultiLabelBinarizer()
+    binary_matrix = mlb.fit_transform(item_lists)
     
-    # sort elements alphabetically
-    values.sort()
-
-    le = LabelEncoder()
-
-    # Force 'None' to index 0
-    final_values = ['None'] + values
-
-    # We manually set the classes so LE doesn't re-sort them alphabetically
-    le.classes_ = np.array(final_values)
+    # Generate names and immediately lowercase them
+    col_names = [f'{prefix}_{c}'.lower() for c in mlb.classes_]
+    binary_df = pd.DataFrame(binary_matrix, columns=col_names, dtype=int)
     
-    # Update the actual column to replace NaNs with the string 'None'
-    df[column] = df[column].fillna('None')
+    df = pd.concat([df.drop(columns=[column]).reset_index(drop=True), binary_df], axis=1)
+    return df
 
-    # Transform the column and overwrite it
-    df[column] = le.transform(df[column])
-
-    # print({label: i for i, label in enumerate(le.classes_)})
-
+def one_hot_encode(df, columns):
+    """
+    one-hot encode cat data w/out order.
+    Forces all generated column names to lowercase.
+    """
+    df = pd.get_dummies(df, columns=columns, prefix=columns, dtype=int)
+    df.columns = df.columns.str.lower()
     return df
 
 
 if __name__ == '__main__':
-    pkmn_df = pd.read_csv('data\pokemon_complete.csv')
-    n = len(pkmn_df)
+    data_path = Path('data/pokemon_complete.csv')
+    if not data_path.exists():
+        raise FileNotFoundError(f"Could not find {data_path}")
+        
+    pkmn_df = pd.read_csv(data_path)
+    # Standardize initial column names to lowercase
+    pkmn_df.columns = pkmn_df.columns.str.lower()
+    
+    pkmn_df['name_clean'] = pkmn_df['name'].str.replace('-', '', regex=False).str.lower()
 
-    # encode abilities
-    pkmn_df = multi_group_encode(pkmn_df, 'abilities', 3)
+    # --- 1. MULTI-HOT ENCODE --- 
+    # abilities
+    pkmn_df = multi_hot_encode(pkmn_df, 'abilities', 'ability')
 
-    # encode egg_groups
-    pkmn_df = multi_group_encode(pkmn_df, 'egg_groups', 2)
+    # movepools
+    movepool_path = 'data/exported-learnsets.json'
+    with open(movepool_path, 'r') as f:
+        movepool_mapping = json.load(f)
 
-    # encode habitat
-    habitats = pkmn_df['habitat'].unique()
-    pkmn_df = label_encode(pkmn_df, 'habitat', habitats)
+    pkmn_df['temp_moves'] = pkmn_df['name_clean'].apply(
+        lambda x: get_movepool_with_fallback(x, movepool_mapping)
+    )
 
-    # encode shape
-    shapes = pkmn_df['shape'].unique()
-    pkmn_df = label_encode(pkmn_df, 'shape', shapes)
+    pkmn_df['temp_moves'] = pkmn_df['temp_moves'].apply(lambda x: '|'.join(x) if x else 'none')
+    pkmn_df = multi_hot_encode(pkmn_df, 'temp_moves', 'move')
 
-    # encode color
-    colors = pkmn_df['color'].unique()
-    pkmn_df = label_encode(pkmn_df, 'color', colors)
+    
+    # UNIFY TYPES: Join type1 and type2 then multi-hot encode
+    pkmn_df['temp_types'] = pkmn_df['type_1'].astype(str) + '|' + pkmn_df['type_2'].astype(str)
+    pkmn_df = multi_hot_encode(pkmn_df, 'temp_types', 'type')
+    pkmn_df = pkmn_df.drop(columns=['type_1', 'type_2'])
 
-    # encode generation
-    gens = pkmn_df['generation'].unique()
-    pkmn_df = label_encode(pkmn_df, 'generation', gens)
+    # --- 2. ONE-HOT ENCODE ---
+    pkmn_df = one_hot_encode(pkmn_df, ['habitat', 'shape', 'color'])
 
-    # encode types
-    types = pd.unique(pkmn_df[['type_1', 'type_2']].values.ravel())
-    pkmn_df = label_encode(pkmn_df, 'type_1', types)
-    pkmn_df = label_encode(pkmn_df, 'type_2', types)
+    # --- 3. ORDINAL LABEL ENCODING ---
+    gens = ['gen-i','gen-ii','gen-iii','gen-iv','gen-v','gen-vi', 'gen-vii', 'gen-viii', 'gen-ix']
+    pkmn_df = label_encode_ordinal(pkmn_df, 'generation', gens)
+
+    growth_order = ['fast', 'medium', 'fast-then-very-slow', 'medium-slow', 'slow', 'slow-then-very-fast']
+    pkmn_df = label_encode_ordinal(pkmn_df, 'growth_rate', growth_order)
+
+    # Competitive Tiers
+    tier_path = Path('data/exported-tiers.json')
+    if tier_path.exists():
+        with open(tier_path, 'r') as f:
+            tier_mapping = json.load(f)
+
+        pkmn_df['tier'] = pkmn_df['name_clean'].map(tier_mapping)
+
+        tier_order = ['LC', 'NFE', 'RU', 'UU', 'OU', 'Uber', 'AG']
+
+        pkmn_df = pkmn_df[pkmn_df['tier'].isin(tier_order)].copy()
+        pkmn_df = label_encode_ordinal(pkmn_df, 'tier', tier_order)
+
+
+    # --- 4. BOOLS->INT + CALCULATED EVO STAGES --
+    pkmn_df['evolution_stage'] = pkmn_df.groupby('evolution_chain_id').cumcount() + 1
+    pkmn_df.loc[pkmn_df['is_baby'] == 1, 'evolution_stage'] = 0
+    
+
 
     bool_cols = ['is_legendary', 'is_mythical', 'is_baby']
-    pkmn_df[bool_cols] = pkmn_df[bool_cols].astype(int)
+    for col in bool_cols:
+        if col in pkmn_df.columns:
+            pkmn_df[col] = pkmn_df[col].astype(int)
 
-    # encode growth rate (special because it's ordinal)
-    growth_order = {'fast':1, 'medium':2, 'fast-then-very-slow':3, 'medium-slow':4, 'slow':5, 'slow-then-very-fast':6}
-    pkmn_df['growth_rate'] = pkmn_df['growth_rate'].map(growth_order)
-
-    # merge dataset that contains competitive tier of each pokemon
-    with open('data/exported-tiers.json', 'r') as f:
-        tier_mapping = json.load(f)
-
-    pkmn_df['name'] = pkmn_df['name'].str.replace('-', '', regex=False).str.lower()
-    pkmn_df['tier'] = pkmn_df['name'].map(tier_mapping)
-    print(pkmn_df[['name', 'tier']].head())
-
-    cols_to_delete = ['pokedex_number', 'name', 'hidden_ability', 'flavor_text', 'sprite_url', 'genus']
-    pkmn_df = pkmn_df.drop(columns=cols_to_delete)
+    # --- 5. CLEANUP & EXPORT --- 
+    cols_to_delete = ['pokedex_number', 'name', 'name_clean', 'hidden_ability', 
+                      'flavor_text', 'sprite_url', 'genus', 'evolution_chain_id', 'egg_groups', 'base_experience']
     
-
-    # Save to data folder
-    pkmn_df.to_csv('data/preprocessed_pokemon_data.csv', index=False)
-
-
+    pkmn_df = pkmn_df.drop(columns=[c for c in cols_to_delete if c in pkmn_df.columns])
     
-
-
+    # Final global lowercase check before saving
+    pkmn_df.columns = pkmn_df.columns.str.lower()
+    
+    output_path = Path('data/preprocessed_pokemon_data.csv')
+    pkmn_df.to_csv(output_path, index=False)
+    print(f"Successfully saved to {output_path}; {len(pkmn_df.columns)} cols")

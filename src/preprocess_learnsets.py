@@ -42,6 +42,40 @@ def getLearnsets(raw_data):
 
     return pokemon_learnsets
 
+def isMega(mon_name):
+    try:
+        mon_name.index('-mega')
+        return True
+    except:
+        return False
+
+def getNonMegaName(mon_name):
+    # trivial short-circuit
+    if not isMega(mon_name):
+        return 'ERROR_INPUT_MUST_BE_MEGA'
+    mega_tag_index = mon_name.index('-mega')
+    non_mega_name = mon_name[0:mega_tag_index]
+    return non_mega_name
+
+def hasNonMega(mega_name:str, pokemon_learnsets:dict) -> bool:
+        return getNonMegaName(mega_name) in pokemon_learnsets.keys()
+
+def addMegaLearnsets(pokemon_learnsets: dict):
+    # We'll pull from the exported tiers from the other preprocessor to find our list of megas
+    tiers = load_json('data/exported-tiers.json')
+    for mon in tiers:
+        if isMega(mon) and hasNonMega(mon, pokemon_learnsets):
+            pokemon_learnsets[mon] = pokemon_learnsets[getNonMegaName(mon)]
+
+def removeInvalidLearnsets(pokemon_learnsets:dict):
+    hitlist = []  # track which to remove
+    for mon in pokemon_learnsets.keys():
+        if 'NO_VALID_LEARNSET' in pokemon_learnsets[mon]:
+            hitlist.append(mon)
+    for mon in hitlist:
+        pokemon_learnsets.pop(mon)
+    
+
 def main() -> None:
     # Set our targeted file paths
     input_file = 'data/learnsets.json'
@@ -51,8 +85,18 @@ def main() -> None:
     raw_data = load_json(input_file)
     pokemon_learnsets = getLearnsets(raw_data)
 
+    # At this point we're still missing the megas, so lets add those in here
+    addMegaLearnsets(pokemon_learnsets)
+
+    # Lastly, we remove the entries without valid learnsets
+    removeInvalidLearnsets(pokemon_learnsets)
+
     # Write the data to the output file!
     write_json(pokemon_learnsets, output_file)
+
+    # Output debug data to console
+    print(f'|-- Preprocessing complete! --|')
+    print(f'...Total processed pokemon -> {len(pokemon_learnsets.keys())}')
 
 
 if __name__ == "__main__":
