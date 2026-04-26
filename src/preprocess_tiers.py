@@ -32,7 +32,7 @@ def getTiers(raw_data):
         elif ('tier' in mon_tiers.keys()):  # does not have specified natDexTier
             return mon_tiers['tier']
         else:
-            return 'NO_TIER_DEFINED'
+            return 'Illegal'
         
     pokemon_list = raw_data.keys()
     pokemon_tiers = dict()  # will contain (name : tier)
@@ -44,6 +44,27 @@ def getTiers(raw_data):
 
     return pokemon_tiers
 
+def roundUpTiers(pokemon_tiers):
+    """ Round up borderline tiers... ex: UUBL becomes OU """
+    tier_roundups = {
+        'Unreleased': 'Illegal',
+        'AG': 'Illegal',
+        'CAP': 'Illegal',
+        'CAP LC': 'Illegal',
+        'CAP NFE': 'Illegal',
+        '(OU)': 'OU',
+        'UUBL': 'OU',
+        'RUBL': 'UU',
+        'NUBL': 'RU',
+        'PUBL': 'NU',
+        'ZUBL': 'PU'
+    }
+    for mon_name in pokemon_tiers.keys():
+        curr_tier = pokemon_tiers[mon_name]
+        if curr_tier in tier_roundups.keys():
+            pokemon_tiers[mon_name] = tier_roundups[curr_tier]
+    return pokemon_tiers
+
 def main() -> None:
     # Set our targeted file paths
     input_file = 'data/formats-data.json'
@@ -53,6 +74,9 @@ def main() -> None:
     raw_data = load_json(input_file)
     pokemon_tiers = getTiers(raw_data)
     
+    # Round up borderline tiers... ex: UUBL becomes OU
+    pokemon_tiers = roundUpTiers(pokemon_tiers)
+
     # Write the data to the output file!
     write_json(pokemon_tiers, output_file)
 
@@ -60,6 +84,11 @@ def main() -> None:
     print(f'|-- Preprocessing complete! --|')
     print(f'...Total processed pokemon -> {len(pokemon_tiers.keys())}')
 
+    tiers_uq = []
+    for name in pokemon_tiers.keys():
+        if pokemon_tiers[name] not in tiers_uq:
+            tiers_uq.append(pokemon_tiers[name])
+    print(f'tiers:\n{tiers_uq}')
 
 if __name__ == "__main__":
     main()
