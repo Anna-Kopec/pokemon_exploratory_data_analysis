@@ -65,24 +65,34 @@ def roundUpTiers(pokemon_tiers):
             pokemon_tiers[mon_name] = tier_roundups[curr_tier]
     return pokemon_tiers
 
-# def includeMegas(pokemon_tiers):
-#     def isMega(mon_name, pokemon_tiers):
-#         # Constants to help with readability
-#         last_four = on_name[-4:]
-#         non_mega_name = mon_name[:-4]
-#         # Check if it's a mega
-#         if (len(mon_name) > 4 and
-#             last_four == 'mega' and
-#             non_mega_name in pokemon_tiers.keys()  # has the nonmega in dataset
-#             ):
-#             # 
-#             pokemon_tiers[mon_name] = pokemon_tiers[]
+def isMegaBadFormat(name:str):
+    return (
+        name != 'yanmega' and  # yes hardcoding this edge case is bad but it's literally the only instance of a base pokemon with a name that ends in mega, so suck it up buttercup
+        len(name) > 5 and
+        (name.endswith('mega') or name.endswith('megax') or name.endswith('megay'))
+    )
 
+def fixMegaNameFormat(name:str) -> str:
+    if not isMegaBadFormat(name):
+        return 'ERR_PROVIDE_BAD_FORMAT_MEGA'
+    if name.endswith('mega'):
+        return f'{name[:-4]}-mega'
+    if name.endswith('megax'):
+        return f'{name[:-5]}-megax'
+    if name.endswith('megay'):
+        return f'{name[:-5]}-megay'
+    return 'ERR_PROVIDE_BAD_FORMAT_MEGA'
 
-    # for mon_name in pokemon_tiers.keys():
-    #     curr_tier = pokemon_tiers[mon_name]
-    #     if 'megamon_name in tier_roundups.keys():
-    #         pokemon_tiers[mon_name] = tier_roundups[curr_tier]
+def formatMegas(pokemon_tiers:dict) -> dict:
+    new_pokemon_tiers = dict()
+    for mon in pokemon_tiers.keys():
+        if isMegaBadFormat(mon):
+            fixed_name = fixMegaNameFormat(mon)
+            new_pokemon_tiers[fixed_name] = pokemon_tiers[mon]
+        else:
+            new_pokemon_tiers[mon] = pokemon_tiers[mon]
+    return new_pokemon_tiers
+
 
 def main() -> None:
     # Set our targeted file paths
@@ -96,6 +106,9 @@ def main() -> None:
     # Round up borderline tiers... ex: UUBL becomes OU
     pokemon_tiers = roundUpTiers(pokemon_tiers)
 
+    # Add the dash in the name for mega pokemon
+    pokemon_tiers = formatMegas(pokemon_tiers)
+
     # Write the data to the output file!
     write_json(pokemon_tiers, output_file)
 
@@ -103,12 +116,12 @@ def main() -> None:
     print(f'|-- Preprocessing complete! --|')
     print(f'...Total processed pokemon -> {len(pokemon_tiers.keys())}')
 
-    # DEBUG REMOVE
-    countIllegal = 0
-    for mon in pokemon_tiers.keys():
-        if pokemon_tiers[mon] == 'Illegal':
-            countIllegal += 1
-            print(f'{mon} -> {pokemon_tiers[mon]}')
+    # DEBUG ... keep commented
+    # countIllegal = 0
+    # for mon in pokemon_tiers.keys():
+    #     if pokemon_tiers[mon] == 'Illegal':
+    #         countIllegal += 1
+    #         print(f'{mon} -> {pokemon_tiers[mon]}')
 
 
 if __name__ == "__main__":
