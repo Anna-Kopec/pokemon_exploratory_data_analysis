@@ -53,7 +53,17 @@ if __name__ == '__main__':
     pkmn_df.columns = pkmn_df.columns.str.lower()
 
     # --- 1. MULTI-HOT ENCODE --- 
+    # abilities
     pkmn_df = multi_hot_encode(pkmn_df, 'abilities', 'ability')
+
+    # movepools
+    movepool_path = 'data/learnsets.json'
+    with open(movepool_path, 'r') as f:
+        movepool_mapping = json.load(f)
+    
+
+
+
 
     # UNIFY TYPES: Join type1 and type2 then multi-hot encode
     pkmn_df['temp_types'] = pkmn_df['type_1'].astype(str) + '|' + pkmn_df['type_2'].astype(str)
@@ -79,7 +89,9 @@ if __name__ == '__main__':
         pkmn_df['name_clean'] = pkmn_df['name'].str.replace('-', '', regex=False).str.lower()
         pkmn_df['tier'] = pkmn_df['name_clean'].map(tier_mapping)
         
-        tier_order = ['Illegal','LC', 'NFE', 'RU', 'UU', 'OU', 'Uber', 'AG']
+        tier_order = ['LC', 'NFE', 'RU', 'UU', 'OU', 'Uber', 'AG']
+        
+        pkmn_df = pkmn_df[pkmn_df['tier'].isin(tier_order)].copy()
         pkmn_df = label_encode_ordinal(pkmn_df, 'tier', tier_order)
 
     # --- 4. BOOLS->INT + CALCULATED EVO STAGES --
