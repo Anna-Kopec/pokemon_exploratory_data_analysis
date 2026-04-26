@@ -56,6 +56,10 @@ def main() -> None:
     # Write the data to the output file!
     write_json(pokemon_tiers, output_file)
 
+    # Output debug data to console
+    print(f'|-- Preprocessing complete! --|')
+    print(f'...Total processed pokemon -> {len(pokemon_tiers.keys())}')
+
 
 if __name__ == "__main__":
     main()
