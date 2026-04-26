@@ -65,6 +65,25 @@ def roundUpTiers(pokemon_tiers):
             pokemon_tiers[mon_name] = tier_roundups[curr_tier]
     return pokemon_tiers
 
+# def includeMegas(pokemon_tiers):
+#     def isMega(mon_name, pokemon_tiers):
+#         # Constants to help with readability
+#         last_four = on_name[-4:]
+#         non_mega_name = mon_name[:-4]
+#         # Check if it's a mega
+#         if (len(mon_name) > 4 and
+#             last_four == 'mega' and
+#             non_mega_name in pokemon_tiers.keys()  # has the nonmega in dataset
+#             ):
+#             # 
+#             pokemon_tiers[mon_name] = pokemon_tiers[]
+
+
+    # for mon_name in pokemon_tiers.keys():
+    #     curr_tier = pokemon_tiers[mon_name]
+    #     if 'megamon_name in tier_roundups.keys():
+    #         pokemon_tiers[mon_name] = tier_roundups[curr_tier]
+
 def main() -> None:
     # Set our targeted file paths
     input_file = 'data/formats-data.json'
@@ -83,6 +102,14 @@ def main() -> None:
     # Output debug data to console
     print(f'|-- Preprocessing complete! --|')
     print(f'...Total processed pokemon -> {len(pokemon_tiers.keys())}')
+
+    # DEBUG REMOVE
+    countIllegal = 0
+    for mon in pokemon_tiers.keys():
+        if pokemon_tiers[mon] == 'Illegal':
+            countIllegal += 1
+            print(f'{mon} -> {pokemon_tiers[mon]}')
+
 
 if __name__ == "__main__":
     main()

@@ -23,16 +23,15 @@ def write_json(data: dict, file_path: str):
         print(f"Error: Could not find {file_path}.")
         return None
 
-def getSmogons(raw_data):
-    """Returns dict containing all pokemon and their respective learnsets (Gen9 natdex @ lvl 100 ). """
-    def getSmogon(name):
-        """ Returns learnset without data pertaining to level or acq. method. """
-        try:
-            return list(learnset.keys())
-        except:
-            return ['NO_VALID_LEARNSET']
+def getAllSmogonBuilds(smogon_files: list):
+    """Returns dict containing all pokemon and their respective smogons (Gen9 natdex @ lvl 100 )."""
+    def getSmogonBuilds(name: str, file_name: list):
+        """Returns smogon builds (one per pokemon) for given individual file."""
+        builds = load_json(file_name)
+        return builds
+
         
-    pokemon_list = raw_data.keys()
+    builds = []
     pokemon_learnsets = dict()  # will contain (name : tier)
 
     for mon_name in pokemon_list:
@@ -67,7 +66,7 @@ def main() -> None:
     output_file = 'data/exported-smogon.json'
 
     # Process the data
-    smogons = getSmogons(input_files)
+    smogons = getAllSmogonBuilds(input_files)
 
     # Write the data to the output file!
     write_json(smogons, output_file)
