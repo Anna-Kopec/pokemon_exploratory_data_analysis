@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     # --- 5. CLEANUP & EXPORT --- 
     cols_to_delete = ['pokedex_number', 'name', 'name_clean', 'hidden_ability', 
-                      'flavor_text', 'sprite_url', 'genus', 'evolution_chain_id', 'egg_groups']
+                      'flavor_text', 'sprite_url', 'genus', 'evolution_chain_id', 'egg_groups', 'base_experience']
     
     pkmn_df = pkmn_df.drop(columns=[c for c in cols_to_delete if c in pkmn_df.columns])
     
