@@ -26,7 +26,7 @@ def write_json(data: dict, file_path: str):
 def getTiers(raw_data):
     """Returns dict containing all pokemon and their respective nat-dex tiers. """
     def getNatDexTier(mon_tiers):
-        """ Finds netional-dex tier for a given pokemon. """
+        """ Finds national-dex tier for a given pokemon. """
         if ('natDexTier' in mon_tiers.keys()):  # has specific natDexTier
             return mon_tiers['natDexTier']
         elif ('tier' in mon_tiers.keys()):  # does not have specified natDexTier
