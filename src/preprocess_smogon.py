@@ -25,7 +25,25 @@ def write_json(data: dict, file_path: str):
 
 def getFirstKey(d: dict):
     """Returns first key of given dict. Will be messy, don't read into it too deep. :|"""
+    return list((d.keys()))[0]
+
+def getFirstValue(d: dict):
+    """Returns first value of given dict. Will be messy, don't read into it too deep. :|"""
     return d[list((d.keys()))[0]]
+
+def normalizeRandomBattles(file_names: list):
+    for fname in file_names:
+        pokemon_builds = load_json(fname)
+        # First check if this file was already normalized
+        first_mon_name = getFirstKey(pokemon_builds)
+        first_mon = pokemon_builds[first_mon_name]
+        if 'level' not in first_mon:
+            continue  # skip this file; don't change it
+        # From here, we know the file must be wrong
+        new_pokemon_builds = dict()
+        for name in pokemon_builds.keys():
+            new_pokemon_builds[name] = {'DefaultBuild' : pokemon_builds[name]}
+        write_json(new_pokemon_builds, fname)
 
 def getAllSmogonBuilds(smogon_files: list):
     """Returns dict containing all pokemon and their respective smogons (Gen9 natdex @ lvl 100 )."""
@@ -37,7 +55,7 @@ def getAllSmogonBuilds(smogon_files: list):
         for mon in mons.keys():
             # Get first build; if there's only one, grabs only build
             curr_options = mons[mon]
-            selected_option = getFirstKey(curr_options)
+            selected_option = getFirstValue(curr_options)
             # Add this build into builds under the current pokemon name
             builds[mon] = selected_option
         return builds
@@ -81,9 +99,15 @@ def main() -> None:
     for i in range(len(input_files)):
         input_files[i] = input_file_dir + input_files[i]
 
+    # Pre-pre-process the random battle files by nesting their builds the way the rest are formatted.
+    normalizeRandomBattles(input_files[-3:])
+
     # Process the data
     smogon_builds = getAllSmogonBuilds(input_files)
 
+    # Normalize casing for all pokemon names
+    smogon_builds = {k.lower(): v for k, v in smogon_builds.items()}
+    
     # Write the data to the output file!
     write_json(smogon_builds, output_file)
 
