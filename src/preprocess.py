@@ -53,17 +53,29 @@ if __name__ == '__main__':
     pkmn_df = pd.read_csv(data_path)
     # Standardize initial column names to lowercase
     pkmn_df.columns = pkmn_df.columns.str.lower()
+    
+    pkmn_df['name_clean'] = pkmn_df['name'].str.replace('-', '', regex=False).str.lower()
 
     # --- 1. MULTI-HOT ENCODE --- 
     # abilities
     pkmn_df = multi_hot_encode(pkmn_df, 'abilities', 'ability')
 
     # movepools
-    movepool_path = 'data/learnsets.json'
+    movepool_path = 'data/exported-learnsets.json'
     with open(movepool_path, 'r') as f:
         movepool_mapping = json.load(f)
-    
 
+    pkmn_df['temp_moves'] = pkmn_df['name_clean'].apply(
+        lambda x: movepool_mapping.get(x, [])
+    )
+
+    pkmn_df['temp_moves'] = pkmn_df['temp_moves'].apply(
+        lambda x: '|'.join(x) if len(x) > 0 else 'none'
+    )
+
+    pkmn_df = multi_hot_encode(pkmn_df, 'temp_moves', 'move')
+
+    
     # UNIFY TYPES: Join type1 and type2 then multi-hot encode
     pkmn_df['temp_types'] = pkmn_df['type_1'].astype(str) + '|' + pkmn_df['type_2'].astype(str)
     pkmn_df = multi_hot_encode(pkmn_df, 'temp_types', 'type')
@@ -85,7 +97,6 @@ if __name__ == '__main__':
         with open(tier_path, 'r') as f:
             tier_mapping = json.load(f)
 
-        pkmn_df['name_clean'] = pkmn_df['name'].str.replace('-', '', regex=False).str.lower()
         pkmn_df['tier'] = pkmn_df['name_clean'].map(tier_mapping)
 
         tier_order = ['LC', 'NFE', 'RU', 'UU', 'OU', 'Uber', 'AG']
@@ -97,6 +108,8 @@ if __name__ == '__main__':
     # --- 4. BOOLS->INT + CALCULATED EVO STAGES --
     pkmn_df['evolution_stage'] = pkmn_df.groupby('evolution_chain_id').cumcount() + 1
     pkmn_df.loc[pkmn_df['is_baby'] == 1, 'evolution_stage'] = 0
+    
+
 
     bool_cols = ['is_legendary', 'is_mythical', 'is_baby']
     for col in bool_cols:
@@ -104,7 +117,8 @@ if __name__ == '__main__':
             pkmn_df[col] = pkmn_df[col].astype(int)
 
     # --- 5. CLEANUP & EXPORT --- 
-    cols_to_delete = ['pokedex_number', 'name', 'name_clean', 'hidden_ability', 
+    # temp: keep 'name', 'name_clean' but remove late - for data checking
+    cols_to_delete = ['pokedex_number', 'hidden_ability', 
                       'flavor_text', 'sprite_url', 'genus', 'evolution_chain_id', 'egg_groups']
     
     pkmn_df = pkmn_df.drop(columns=[c for c in cols_to_delete if c in pkmn_df.columns])
